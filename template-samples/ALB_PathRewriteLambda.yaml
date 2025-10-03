@@ -1,0 +1,279 @@
+# ALB Path Rewrite Lambda Template
+# 
+# This is a reusable CloudFormation template that creates a Lambda function
+# to redirect/rewrite URL paths using Application Load Balancer (ALB).
+#
+# Example Use Cases:
+# - Redirect legacy URLs to new paths during site migration
+# - Route requests from deprecated endpoints to current ones
+# - URL path transformation for microservice routing
+#
+# Usage:
+# 1. Deploy an ALB stack first and note its stack name
+# 2. Deploy this template with appropriate parameter values
+# 3. The Lambda will redirect requests from OldPath/* to NewPath/*
+#
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Reusable template for ALB + Lambda path rewrite/redirect functionality"
+
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Project name used as prefix for resource names
+    Default: "path-rewrite"
+    AllowedPattern: "^[a-z][a-z0-9-]{0,30}[a-z0-9]$"
+    ConstraintDescription: "Must start with a letter, contain only lowercase letters, numbers, and hyphens, and be 2-32 characters long"
+  
+  OldPath:
+    Type: String
+    Description: Original path to redirect from (e.g., /old-service)
+    Default: "/old_url"
+    AllowedPattern: "^/[a-zA-Z0-9_/-]*$"
+    ConstraintDescription: "Must start with / and contain only alphanumeric characters, underscores, hyphens, and forward slashes"
+  
+  NewPath:
+    Type: String
+    Description: New path to redirect to (e.g., /new-service)
+    Default: "/new_url"
+    AllowedPattern: "^/[a-zA-Z0-9_/-]*$"
+    ConstraintDescription: "Must start with / and contain only alphanumeric characters, underscores, hyphens, and forward slashes"
+  
+  ListenerRulePriority:
+    Type: Number
+    Description: Priority for the ALB listener rule (1-50000)
+    Default: 100
+    MinValue: 1
+    MaxValue: 50000
+  
+  ALBStackName:
+    Type: String
+    Description: Name of the CloudFormation stack that contains the ALB
+    Default: "alb-stack"
+    AllowedPattern: "^[a-zA-Z][a-zA-Z0-9-]{0,126}[a-zA-Z0-9]$"
+    ConstraintDescription: "Stack name must be 2-128 characters, start with a letter, and contain only alphanumeric characters and hyphens"
+
+Resources:
+  # CloudWatch Log Group for Lambda function with retention policy
+  PathRewriteLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ProjectName}-lambda"
+      RetentionInDays: 14
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Component
+          Value: PathRewrite
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # IAM role for the Lambda function to access AWS resources
+  PathRewriteLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-lambda-role"
+      # IAM role used by the Lambda function at execution time
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      # Attach a basic execution policy that allows the Lambda function to output logs to CloudWatch Logs
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Component
+          Value: PathRewrite
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # Lambda function that processes HTTP path rewriting for incoming requests
+  PathRewriteFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: PathRewriteLogGroup
+    Properties:
+      FunctionName: !Sub "${ProjectName}-lambda"
+      Runtime: python3.12
+      # Lambda function entry point
+      Handler: index.lambda_handler
+      Role: !GetAtt PathRewriteLambdaRole.Arn
+      # Maximum execution time for the function (in seconds)
+      Timeout: 5
+      Environment:
+        Variables:
+          OLD_PATH: !Ref OldPath
+          NEW_PATH: !Ref NewPath
+      Code:
+        ZipFile: !Sub |
+          """Lambda function that processes HTTP path rewriting for incoming requests.
+          """
+          import urllib.parse
+          import os
+          import json
+          import logging
+
+          # Set up logging
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          # Get path mapping from environment variables
+          OLD_PATH = os.environ.get('OLD_PATH', '${OldPath}')
+          NEW_PATH = os.environ.get('NEW_PATH', '${NewPath}')
+
+          def lambda_handler(event, context):
+              """Lambda handler
+
+              Lambda function that processes HTTP path rewriting for incoming requests.
+              Processes the event object, extracts the path and headers,
+              rewrites the path based on configurable rules, and constructs a 301 redirect response.
+
+              Parameters
+              ----------
+              event: dict, required
+                  Lambda Event Object
+
+                  Event doc: https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-concepts.html#gettingstarted-concepts-event
+
+              context: object, required
+                  Lambda Context runtime methods and attributes
+
+                  Context doc: https://docs.aws.amazon.com/ja_jp/lambda/latest/dg/python-context.html
+
+              Returns
+              -------
+              object
+                  Http Response
+              """
+
+              try:
+                  # Validate event structure
+                  if 'path' not in event or 'headers' not in event:
+                      logger.error(f"Missing required fields in event: {json.dumps(event)}")
+                      return {
+                          'statusCode': 400,
+                          'headers': {'Content-Type': 'application/json'},
+                          'body': json.dumps({'error': 'Invalid event structure'})
+                      }
+
+                  path = event['path']
+                  headers = event['headers']
+                  proto = headers.get('x-forwarded-proto', 'https')
+                  host = headers.get('host', 'example.com')
+                  qs = event.get('queryStringParameters') or {}
+                  query = '?' + urllib.parse.urlencode(qs) if qs else ''
+
+                  logger.info(f"Processing path rewrite: {path} -> OLD_PATH: {OLD_PATH}, NEW_PATH: {NEW_PATH}")
+
+                  # Rewrite path using configurable OLD_PATH and NEW_PATH
+                  new_path = path.replace(OLD_PATH, NEW_PATH)
+
+                  redirect_url = f'{proto}://{host}{new_path}{query}'
+                  logger.info(f"Redirecting to: {redirect_url}")
+
+                  return {
+                      'isBase64Encoded': False,
+                      'statusCode': 301,
+                      'statusDescription': '301 Moved Permanently',
+                      'headers': {
+                        'Location': redirect_url
+                      },
+                      'body': '',
+                  }
+
+              except Exception as e:
+                  logger.error(f"Error processing request: {str(e)}")
+                  return {
+                      'statusCode': 500,
+                      'headers': {'Content-Type': 'application/json'},
+                      'body': json.dumps({'error': 'Internal server error'})
+                  }
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Component
+          Value: PathRewrite
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # Permissions granted to the Lambda function
+  PathRewritePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref PathRewriteFunction
+      # Action to invoke the Lambda function
+      Action: lambda:InvokeFunction
+      # Allow ALB to invoke the function
+      Principal: elasticloadbalancing.amazonaws.com
+    # Ensure Target Group is created before setting permission
+    DependsOn: PathRewriteTargetGroup
+
+  # Target group for the Lambda function
+  PathRewriteTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${ProjectName}-tg"
+      TargetType: lambda
+      Targets:
+        # Specify the ARN of PathRewriteFunction as the target
+        - Id: !GetAtt PathRewriteFunction.Arn
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Component
+          Value: PathRewrite
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # Listener rule to handle requests matching a specific path pattern
+  OldPathListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      # Specify the existing ALB listener ARN
+      ListenerArn:
+        Fn::ImportValue:
+          !Sub "${ALBStackName}-ListenerArn"
+      # Rule priority (configurable via parameter)
+      Priority: !Ref ListenerRulePriority
+      Conditions:
+        # Path pattern condition using parameter
+        - Field: path-pattern
+          Values:
+            - !Sub "${OldPath}/*"
+      Actions:
+        # Forward the request to the target group
+        - Type: forward
+          TargetGroupArn: !Ref PathRewriteTargetGroup
+
+Outputs:
+  LambdaFunctionArn:
+    Description: ARN of the path rewrite Lambda function
+    Value: !GetAtt PathRewriteFunction.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-LambdaFunctionArn"
+  
+  TargetGroupArn:
+    Description: ARN of the target group for the Lambda function
+    Value: !Ref PathRewriteTargetGroup
+    Export:
+      Name: !Sub "${AWS::StackName}-TargetGroupArn"
+  
+  ListenerRuleArn:
+    Description: ARN of the ALB listener rule
+    Value: !Ref OldPathListenerRule
+    Export:
+      Name: !Sub "${AWS::StackName}-ListenerRuleArn"
+  
+  LambdaFunctionName:
+    Description: Name of the created Lambda function
+    Value: !Ref PathRewriteFunction
+    Export:
+      Name: !Sub "${AWS::StackName}-LambdaFunctionName"
+  
+  PathMapping:
+    Description: Path mapping configuration (OldPath -> NewPath)
+    Value: !Sub "${OldPath} -> ${NewPath}"
+
