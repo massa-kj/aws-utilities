@@ -1,0 +1,112 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "QuickSight Analysis",
+  "description": "Schema for QuickSight Analysis resource",
+  "type": "object",
+  "properties": {
+    "AnalysisId": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]{1,512}$",
+      "description": "The ID for the analysis"
+    },
+    "Name": {
+      "type": "string",
+      "maxLength": 2048,
+      "description": "The descriptive name of the analysis"
+    },
+    "Status": {
+      "type": "string",
+      "enum": ["CREATION_IN_PROGRESS", "CREATION_SUCCESSFUL", "CREATION_FAILED", "UPDATE_IN_PROGRESS", "UPDATE_SUCCESSFUL", "UPDATE_FAILED", "DELETED"],
+      "description": "Status associated with the analysis"
+    },
+    "Arn": {
+      "type": "string",
+      "description": "The Amazon Resource Name (ARN) for the analysis"
+    },
+    "CreatedTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The time that this analysis was created"
+    },
+    "LastUpdatedTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The time that this analysis was last updated"
+    },
+    "DataSetArns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "The ARNs of the datasets of the analysis"
+    },
+    "ThemeArn": {
+      "type": "string",
+      "description": "The ARN for the theme to apply to the analysis"
+    },
+    "Sheets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "SheetId": {
+            "type": "string"
+          },
+          "Name": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "A list of the associated sheets with the analysis"
+    },
+    "Definition": {
+      "type": "object",
+      "description": "The definition of an analysis",
+      "properties": {
+        "DataSetIdentifierDeclarations": {
+          "type": "array"
+        },
+        "Sheets": {
+          "type": "array"
+        },
+        "CalculatedFields": {
+          "type": "array"
+        },
+        "ParameterDeclarations": {
+          "type": "array"
+        },
+        "FilterGroups": {
+          "type": "array"
+        },
+        "ColumnConfigurations": {
+          "type": "array"
+        },
+        "AnalysisDefaults": {
+          "type": "object"
+        }
+      }
+    },
+    "Permissions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Principal": {
+            "type": "string",
+            "description": "The Amazon Resource Name (ARN) of the principal"
+          },
+          "Actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The IAM action to grant or revoke permissions on"
+          }
+        }
+      },
+      "description": "A structure that describes the principals and the resource-level permissions on an analysis"
+    }
+  },
+  "required": ["AnalysisId"],
+  "additionalProperties": false
+}

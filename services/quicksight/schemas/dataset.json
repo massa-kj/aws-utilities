@@ -1,0 +1,138 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "QuickSight Dataset",
+  "description": "Schema for QuickSight Dataset resource",
+  "type": "object",
+  "properties": {
+    "DataSetId": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]{1,128}$",
+      "description": "The ID for the dataset"
+    },
+    "Name": {
+      "type": "string",
+      "maxLength": 128,
+      "description": "A display name for the dataset"
+    },
+    "Arn": {
+      "type": "string",
+      "description": "The Amazon Resource Name (ARN) of the resource"
+    },
+    "CreatedTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The time that this dataset was created"
+    },
+    "LastUpdatedTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The last time that this dataset was updated"
+    },
+    "ImportMode": {
+      "type": "string",
+      "enum": ["SPICE", "DIRECT_QUERY"],
+      "description": "Indicates whether you want to import the data into SPICE"
+    },
+    "ConsumedSpiceCapacityInBytes": {
+      "type": "number",
+      "description": "The amount of SPICE capacity used by this dataset"
+    },
+    "DataSetUsageConfiguration": {
+      "type": "object",
+      "properties": {
+        "DisableUseAsDirectQuerySource": {
+          "type": "boolean"
+        },
+        "DisableUseAsImportedSource": {
+          "type": "boolean"
+        }
+      },
+      "description": "The usage configuration to apply to child datasets that reference this dataset as a source"
+    },
+    "PhysicalTableMap": {
+      "type": "object",
+      "description": "Declares the physical tables that are available in the underlying data sources"
+    },
+    "LogicalTableMap": {
+      "type": "object",
+      "description": "Configures the combination and transformation of the data from the physical tables"
+    },
+    "OutputColumns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Name": {
+            "type": "string"
+          },
+          "Description": {
+            "type": "string"
+          },
+          "Type": {
+            "type": "string",
+            "enum": ["STRING", "INTEGER", "DECIMAL", "DATETIME", "BIT", "BOOLEAN", "JSON"]
+          }
+        }
+      },
+      "description": "The list of columns after all transforms"
+    },
+    "ColumnGroups": {
+      "type": "array",
+      "description": "Groupings of columns that work together in certain Amazon QuickSight features"
+    },
+    "FieldFolders": {
+      "type": "object",
+      "description": "The folder that contains fields and nested subfolders for your dataset"
+    },
+    "RowLevelPermissionDataSet": {
+      "type": "object",
+      "properties": {
+        "Namespace": {
+          "type": "string"
+        },
+        "Arn": {
+          "type": "string"
+        },
+        "PermissionPolicy": {
+          "type": "string",
+          "enum": ["GRANT_ACCESS", "DENY_ACCESS"]
+        },
+        "FormatVersion": {
+          "type": "string",
+          "enum": ["VERSION_1", "VERSION_2"]
+        },
+        "Status": {
+          "type": "string",
+          "enum": ["ENABLED", "DISABLED"]
+        }
+      },
+      "description": "The row-level security configuration for the dataset"
+    },
+    "ColumnLevelPermissionRules": {
+      "type": "array",
+      "description": "A set of one or more definitions of a ColumnLevelPermissionRule"
+    },
+    "Permissions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Principal": {
+            "type": "string",
+            "description": "The Amazon Resource Name (ARN) of the principal"
+          },
+          "Actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The IAM action to grant or revoke permissions on"
+          }
+        }
+      },
+      "description": "A list of resource permissions on the dataset"
+    }
+  },
+  "required": ["DataSetId"],
+  "additionalProperties": false
+}
