@@ -44,11 +44,11 @@ quicksight-resource-manager/
 - [x] 共通ライブラリ実装
 - [x] 設定管理システム構築
 
-### Phase 2: Core 機能移行
-1. **API抽象化レイヤー作成**
-   - QuickSight API呼び出しの抽象化
-   - エラーハンドリングの統一
-   - レスポンス処理の標準化
+### Phase 2: Core 機能移行 ✅
+1. **API抽象化レイヤー作成** ✅
+   - [x] QuickSight API呼び出しの抽象化
+   - [x] エラーハンドリングの統一
+   - [x] レスポンス処理の標準化
 
 2. **リソース管理機能の移行**
    - Analysis操作の移行
@@ -94,19 +94,19 @@ quicksight-resource-manager/
 
 | 既存関数 | 新しい場所 | 移行状況 |
 |---------|------------|----------|
-| `extract_analysis_params()` | `src/resources/analysis.sh` | 📋 計画中 |
+| `extract_analysis_params()` | `src/api/v1/analysis_api.sh` | ✅ 移行済み |
 | `create_analysis()` | `src/resources/analysis.sh` | 📋 計画中 |
 | `update_analysis()` | `src/resources/analysis.sh` | 📋 計画中 |
-| `check_analysis_exists()` | `src/api/v1/analysis_api.sh` | 📋 計画中 |
+| `check_analysis_exists()` | `src/api/v1/analysis_api.sh` | ✅ 移行済み |
 
 ### Dataset関連の移行
 
 | 既存関数 | 新しい場所 | 移行状況 |
 |---------|------------|----------|
-| `extract_dataset_params()` | `src/resources/dataset.sh` | 📋 計画中 |
+| `extract_dataset_params()` | `src/api/v1/dataset_api.sh` | ✅ 移行済み |
 | `create_dataset()` | `src/resources/dataset.sh` | 📋 計画中 |
 | `update_dataset()` | `src/resources/dataset.sh` | 📋 計画中 |
-| `check_dataset_exists()` | `src/api/v1/dataset_api.sh` | 📋 計画中 |
+| `check_dataset_exists()` | `src/api/v1/dataset_api.sh` | ✅ 移行済み |
 
 ## 互換性維持計画
 
