@@ -51,7 +51,24 @@ aws_exec() {
   fi
 
   # Execute command
-  aws "${args[@]}" "$@"
+  # aws "${args[@]}" "$@"
+  #
+  log_debug "Executing: aws ${args[*]} $*"
+
+  local output
+  local exit_code
+
+  output=$(aws "${args[@]}" "$@" 2>&1)
+  exit_code=$?
+
+  if [[ $exit_code -eq 0 ]]; then
+      echo "$output"
+      return 0
+  else
+      log_error "AWS command failed: aws ${args[*]} $*"
+      log_error "Error output: $output"
+      return $exit_code
+  fi
 }
 
 # -- Confirm action with user (yes/no) ------------------------
