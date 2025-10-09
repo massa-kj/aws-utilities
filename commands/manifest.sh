@@ -3,6 +3,7 @@
 
 # Define available global commands
 declare -A GLOBAL_COMMANDS=(
+  ["version"]="Show version information"
   ["detect-auth"]="Detect authentication source (profile, env-vars, iam-role)"
 )
 
