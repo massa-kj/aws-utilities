@@ -69,8 +69,9 @@ log() {
   fi
   msg="$*"
 
-  # Level filter
-  if [[ ${LOG_LEVELS[$level]} -lt ${LOG_LEVELS[$LOG_LEVEL]} ]]; then
+  # Level filter (normalize to uppercase)
+  local normalized_log_level="${LOG_LEVEL^^}"
+  if [[ ${LOG_LEVELS[$level]} -lt ${LOG_LEVELS[$normalized_log_level]} ]]; then
     return
   fi
 
