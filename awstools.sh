@@ -88,7 +88,7 @@ execute_global_command() {
 #--- Option parsing (pre-processing) -------------------------
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --help|-h)
+    help|--help|-h)
       show_help; exit 0 ;;
     --debug)
       export LOG_LEVEL="debug"; shift ;;
