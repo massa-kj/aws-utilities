@@ -31,8 +31,19 @@ ensure_aws_ready() {
 #--- Execute AWS command --------------------------------------
 aws_exec() {
   local args=()
-  # Add region always
-  args+=(--region "${AWS_REGION}")
+
+  # Determine region with proper priority:
+  # 1. AWS_REGION environment variable (if set)
+  # 2. Profile's region setting (if profile is used)
+  local region="${AWS_REGION:-}"
+
+  # If no explicit region but profile is set, try to get region from profile
+  if [ -z "$region" ] && [ -n "${AWS_PROFILE:-}" ]; then
+    region=$(aws configure get region --profile "${AWS_PROFILE}" 2>/dev/null || echo "")
+  fi
+
+  # Add region to arguments
+  args+=(--region "$region")
 
   # Add profile only if defined
   if [ -n "${AWS_PROFILE:-}" ]; then
