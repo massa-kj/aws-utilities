@@ -16,7 +16,9 @@ set -euo pipefail
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMMON_DIR="${BASE_DIR}/common"
 SERVICES_DIR="${BASE_DIR}/services"
+COMMANDS_DIR="${BASE_DIR}/commands"
 source "${COMMON_DIR}/logger.sh"
+source "${COMMANDS_DIR}/manifest.sh"
 
 #--- Discover available services dynamically -----------------
 discover_services() {
@@ -35,7 +37,11 @@ show_help() {
 AWS Tools - Unified CLI for multiple AWS services
 
 Usage:
+  $(basename "$0") <command> [args...]
   $(basename "$0") <service> <command> [args...]
+
+Global commands:
+$(list_global_commands)
 
 Available services:
 $(discover_services)
@@ -46,7 +52,8 @@ Common options:
   --no-color             Disable color output (LOG_COLOR=false)
   --log-file <path>      Output logs to specified file
 
-例:
+Examples:
+  $(basename "$0") detect-auth
   $(basename "$0") ec2 list
   $(basename "$0") quicksight backup --profile my-profile
 EOF
@@ -63,6 +70,21 @@ detect_auth_source() {
   fi
 }
 
+#--- Execute global command function ------------------------
+execute_global_command() {
+  local cmd="$1"
+  shift || true
+  
+  local cmd_script="${COMMANDS_DIR}/${cmd}.sh"
+  if [ ! -f "$cmd_script" ]; then
+    log_error "Global command script not found: ${cmd_script}"
+    exit 1
+  fi
+  
+  log_debug "Executing global command: ${cmd}"
+  exec "$cmd_script" "$@"
+}
+
 #--- Option parsing (pre-processing) -------------------------
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -75,6 +97,10 @@ while [[ $# -gt 0 ]]; do
     --log-file)
       export LOG_FILE="$2"; shift 2 ;;
     *)
+      # Check if it's a global command
+      if is_global_command "$1"; then
+        execute_global_command "$@"
+      fi
       break ;;
   esac
 done
@@ -91,6 +117,8 @@ if [ ! -d "$SERVICE_DIR" ]; then
   log_error "Unknown service: ${SERVICE}"
   log_info  "Available services:"
   discover_services
+  log_info  "Global commands:"
+  list_global_commands
   exit 1
 fi
 
