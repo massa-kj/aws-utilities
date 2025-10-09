@@ -114,11 +114,8 @@ SERVICE="$1"; shift || true
 SERVICE_DIR="${SERVICES_DIR}/${SERVICE}"
 
 if [ ! -d "$SERVICE_DIR" ]; then
-  log_error "Unknown service: ${SERVICE}"
-  log_info  "Available services:"
-  discover_services
-  log_info  "Global commands:"
-  list_global_commands
+  log_error "Unknown command or service: ${SERVICE}"
+  show_help
   exit 1
 fi
 
