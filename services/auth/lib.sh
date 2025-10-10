@@ -240,7 +240,7 @@ profile_exists() {
     return 1
   fi
   
-  aws configure list-profiles 2>/dev/null | grep -q "^${profile_name}$"
+  aws configure list-profiles 2>/dev/null | grep "^${profile_name}$"
 }
 
 #
@@ -254,7 +254,7 @@ is_sso_profile() {
     return 1
   fi
   
-  aws configure get sso_start_url --profile "$profile_name" >/dev/null 2>&1
+  aws configure get sso_account_id --profile "$profile_name" >/dev/null 2>&1
 }
 
 #

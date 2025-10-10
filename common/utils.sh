@@ -20,7 +20,9 @@ aws_exec() {
   fi
 
   # Add region to arguments
-  args+=(--region "$region")
+  if ( -n "$region" ); then
+    args+=(--region "$region")
+  fi
 
   # Add profile only if defined
   if [ -n "${AWS_PROFILE:-}" ]; then
