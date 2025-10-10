@@ -40,7 +40,7 @@ auth_sso_login() {
     aws_args+=("--sso-session" "$session_name")
   fi
   
-  if aws "${aws_args[@]}"; then
+  if aws_exec "${aws_args[@]}"; then
     log_info "SSO login successful for profile: $profile_name"
     return 0
   else

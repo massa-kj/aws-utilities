@@ -10,6 +10,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib.sh"  # This also loads common libraries
 source "$SCRIPT_DIR/api.sh"
 
+load_config "" "auth"
+
 #--- Command Help Display ------------------------------------
 show_help() {
   cat <<EOF
