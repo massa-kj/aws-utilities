@@ -5,29 +5,6 @@
 # Common functions used in each service script
 #=============================================================
 
-#--- Ensure AWS CLI and credentials are available -------------
-ensure_aws_ready() {
-  if ! command -v aws >/dev/null 2>&1; then
-    log_error "AWS CLI is not installed. Please install aws-cli v2+."
-    exit 1
-  fi
-
-  # Use profile only if provided
-  if [ -n "${AWS_PROFILE:-}" ]; then
-    if ! aws sts get-caller-identity --profile "${AWS_PROFILE}" >/dev/null 2>&1; then
-      log_error "Invalid AWS credentials for profile '${AWS_PROFILE}'."
-      exit 1
-    fi
-  else
-    if ! aws sts get-caller-identity >/dev/null 2>&1; then
-      log_error "AWS credentials not found (neither profile nor environment variables)."
-      exit 1
-    fi
-  fi
-
-  log_debug "AWS CLI ready (profile=${AWS_PROFILE:-none}, region=${AWS_REGION})"
-}
-
 #--- Execute AWS command --------------------------------------
 aws_exec() {
   local args=()
@@ -69,6 +46,29 @@ aws_exec() {
       log_error "Error output: $output"
       return $exit_code
   fi
+}
+
+#--- Ensure AWS CLI and credentials are available -------------
+ensure_aws_ready() {
+  if ! command -v aws >/dev/null 2>&1; then
+    log_error "AWS CLI is not installed. Please install aws-cli v2+."
+    exit 1
+  fi
+
+  # Use profile only if provided
+  if [ -n "${AWS_PROFILE:-}" ]; then
+    if ! aws_exec sts get-caller-identity >/dev/null 2>&1; then
+      log_error "Invalid AWS credentials for profile '${AWS_PROFILE}'."
+      exit 1
+    fi
+  else
+    if ! aws_exec sts get-caller-identity >/dev/null 2>&1; then
+      log_error "AWS credentials not found (neither profile nor environment variables)."
+      exit 1
+    fi
+  fi
+
+  log_debug "AWS CLI ready (profile=${AWS_PROFILE:-none}, region=${AWS_REGION})"
 }
 
 # -- Confirm action with user (yes/no) ------------------------
