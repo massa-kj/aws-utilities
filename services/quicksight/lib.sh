@@ -10,10 +10,11 @@ if [[ -z "${EC2_LIB_LOADED:-}" ]]; then
   # Determine script directory and base directory
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   BASE_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+  COMMON_DIR="$BASE_DIR/common"
 
   # Load common configuration and utilities only once
   if [[ -z "${AWS_TOOLS_CONFIG_LOADED:-}" ]]; then
-    source "$BASE_DIR/config.sh"
+    source "$COMMON_DIR/config-loader.sh"
     export AWS_TOOLS_CONFIG_LOADED=1
   fi
 

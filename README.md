@@ -70,23 +70,186 @@ A unified command-line interface for managing multiple AWS services with a clean
 ### Project Structure
 ```
 aws-utilities/
-├── awstools.sh              # Main entry point
-├── config.sh                # Global configuration
-├── .env.local               # Optional local config
+├── awstools.sh               # Main entry point
+├── config/                   # Configuration files
+│   ├── default/              # Default configuration files
+│   └── overwrite/            # Local override configuration files
 ├── commands/                 # Global commands
 │   ├── manifest.sh           # Command registry
-│   └── detect-auth.sh        # Authentication detection
+│   └── {command}.sh          # Individual command scripts
 ├── common/                   # Shared utilities
+│   ├── config-loader.sh      # Configuration loader
 │   ├── logger.sh             # Logging system
 │   └── utils.sh              # Common functions
 └── services/                 # Service implementations
-    ├── {command}/            # Individual service (e.g., ec2, quicksight)
-    │   ├── manifest.sh       # Service metadata
-    │   ├── lib.sh            # Service utilities
-    │   ├── api.sh            # AWS API wrappers
-    │   └── ui.sh             # Command interface
-    └── .../
+    └── {service}/            # Individual service (e.g., ec2, quicksight)
+        ├── manifest.sh       # Service metadata
+        ├── lib.sh            # Service utilities
+        ├── api.sh            # AWS API wrappers
+        ├── ui.sh             # Command interface
+        └── ...               # 
 ```
+
+### Configuration Management
+
+#### Configuration File Structure
+```
+config/
+├── aws-exec.env              # AWS execution environment settings
+├── default/                  # Default configuration
+│   ├── common.env           # Common settings
+│   ├── environments/        # Environment-specific settings
+│   │   ├── default.env     # Development environment settings
+│   │   └── prod.env        # Production environment settings
+│   └── services/           # Service-specific settings
+│       ├── auth.env        # Authentication service settings
+│       ├── ec2.env         # EC2 service settings
+│       └── quicksight.env  # QuickSight service settings
+└── overwrite/              # Local override configuration
+    ├── common.env          # Common settings overrides
+    ├── environments/       # Environment settings overrides
+    └── services/          # Service settings overrides
+```
+
+#### Configuration Loading
+Each script loads configuration hierarchically through `config-loader.sh`:
+```bash
+# Basic usage
+load_config <environment> [service]
+
+# Validate configuration
+validate_config <environment> [service]
+
+# Show effective configuration
+show_effective_config [environment] [service]
+```
+
+#### Configuration Priority
+Configuration values are determined by the following priority order (higher priority wins):
+
+1. **CLI Options** - Runtime specification (highest priority)
+   - `--profile`, `--region`, `--config`, `--auth`
+   - Dynamic configuration via `--set KEY=VALUE`
+2. **Environment Variables** - Shell environment settings
+   - `AWS_PROFILE`, `AWS_REGION`, etc.
+3. **Local Override Settings** - User-specific configuration
+   - `config/overwrite/services/{service}.env`
+   - `config/overwrite/environments/{environment}.env`
+   - `config/overwrite/common.env`
+4. **Default Settings** - Project standard configuration
+   - `config/default/services/{service}.env`
+   - `config/default/environments/{environment}.env`
+   - `config/default/common.env`
+
+#### Configuration Management Features
+
+##### Validation
+```bash
+# Validate configuration integrity
+./awstools.sh config validate [environment] [service]
+
+# Validation checks:
+# - Required configuration values presence
+# - Configuration value format validity
+# - Conflicting configuration detection
+# - AWS credential validity
+```
+
+##### Configuration Visualization
+```bash
+# Display current effective configuration
+./awstools.sh config show [environment] [service]
+
+# Show configuration source trace
+./awstools.sh config trace [environment] [service]
+
+# Compare configurations between environments
+./awstools.sh config diff <env1> <env2>
+```
+
+#### Runtime Configuration Control (`aws_exec` functionality)
+
+##### Automatic Configuration Completion
+The `aws_exec` function automatically complements and applies configuration at runtime:
+
+```bash
+# Automatic region determination (priority order)
+# 1. CLI option --region (highest priority)
+# 2. Configuration system (default_region)
+# 3. AWS_REGION environment variable
+# 4. AWS_DEFAULT_REGION environment variable
+# 5. Profile's region setting
+# 6. EC2 instance metadata
+# 7. Default fallback (us-east-1)
+
+# Automatic profile application
+# - When AWS_PROFILE is configured
+# - Avoids conflicts with environment variable authentication
+```
+
+##### Error Handling and Retry Control
+```bash
+# Configurable parameters
+AWS_EXEC_RETRY_COUNT=3          # Number of retry attempts
+AWS_EXEC_RETRY_DELAY=2          # Base delay time (seconds)
+AWS_EXEC_TIMEOUT=300            # Timeout (seconds)
+AWS_EXEC_MAX_OUTPUT_SIZE=1048576 # Maximum output size (bytes)
+
+# Automatically retryable errors
+# - Throttling/RequestLimitExceeded (rate limiting)
+# - Network/Connection errors
+# - ServiceUnavailable/InternalError (temporary service issues)
+
+# Non-retryable errors
+# - AccessDenied/UnauthorizedOperation (permission errors)
+# - NoCredentialsError/ExpiredToken (authentication errors)
+# - User interruption (Ctrl+C)
+```
+
+##### Performance Optimization
+```bash
+# Service-specific rate limits
+AWS_QUICKSIGHT_RATE_LIMIT=10    # QuickSight: 10 req/sec
+AWS_EC2_RATE_LIMIT=20           # EC2: 20 req/sec
+AWS_S3_RATE_LIMIT=100           # S3: 100 req/sec
+AWS_DEFAULT_RATE_LIMIT=50       # Others: 50 req/sec
+
+# Runtime optimization
+aws_exec_with_rate_limit quicksight list-analyses
+```
+
+##### Environment Validation
+```bash
+# Validate AWS environment integrity
+validate_aws_environment [strict_mode]
+
+# Automatic authentication method detection
+# - env-vars (environment variables)
+# - profile:profile-name (AWS profile)
+# - instance-profile (EC2 instance profile)
+# - web-identity (Web Identity token)
+```
+
+##### Error Analysis and Guidance
+Automatically analyzes errors and suggests solutions:
+```bash
+# Authentication error suggestions
+# 1. Run aws configure
+# 2. Set environment variables
+# 3. Re-login with SSO
+
+# Permission error suggestions
+# 1. Check IAM policies
+# 2. Verify AWS account
+# 3. Contact administrator
+```
+
+#### Future Enhancements (Planned)
+- **Configuration Format Extension**: Support for TOML/JSON formats
+- **Automatic Environment Detection**: Auto-select profiles based on execution environment
+- **Configuration Caching**: Prevent duplicate loading and improve performance
+- **Authentication Method Extension**: Comprehensive support for AccessKey/SSO/AssumeRole/WebIdentity
+- **Configuration Templates**: Generate configuration templates for new environments and services
 
 ### Layer Architecture
 Each service follows a 3-layer architecture:
